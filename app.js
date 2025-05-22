@@ -10,7 +10,8 @@ const PORT = process.env.PORT || 5000;
 app.use(cors());
 app.use(express.json());
 
-// ✅ Use single DATABASE_URL for Render PostgreSQL
+console.log("DATABASE_URL:", process.env.DATABASE_URL ? "Loaded" : "Missing");
+
 const db = new Pool({
   connectionString: process.env.DATABASE_URL,
   ssl: { rejectUnauthorized: false },
@@ -22,11 +23,13 @@ db.connect()
 
 // Routes
 
-app.get("/users", (req, res) => {
-  db.query("SELECT * FROM users", (err, results) => {
-    if (err) return res.status(500).send(err);
+app.get("/users", async (req, res) => {
+  try {
+    const results = await db.query("SELECT * FROM users");
     res.json(results.rows);
-  });
+  } catch (err) {
+    res.status(500).json({ error: "Database error" });
+  }
 });
 
 app.post("/users", async (req, res) => {
@@ -48,27 +51,27 @@ app.post("/users", async (req, res) => {
   }
 });
 
-app.put("/users/:id", (req, res) => {
+app.put("/users/:id", async (req, res) => {
   const { name, email } = req.body;
   const { id } = req.params;
 
-  db.query(
-    "UPDATE users SET name = $1, email = $2 WHERE id = $3",
-    [name, email, id],
-    (err) => {
-      if (err) return res.status(500).send(err);
-      res.send("User updated successfully");
-    }
-  );
+  try {
+    await db.query("UPDATE users SET name = $1, email = $2 WHERE id = $3", [name, email, id]);
+    res.json({ message: "User updated successfully" });
+  } catch (err) {
+    res.status(500).json({ error: "Database error" });
+  }
 });
 
-app.delete("/users/:id", (req, res) => {
+app.delete("/users/:id", async (req, res) => {
   const { id } = req.params;
 
-  db.query("DELETE FROM users WHERE id = $1", [id], (err) => {
-    if (err) return res.status(500).send(err);
-    res.send("User deleted successfully");
-  });
+  try {
+    await db.query("DELETE FROM users WHERE id = $1", [id]);
+    res.json({ message: "User deleted successfully" });
+  } catch (err) {
+    res.status(500).json({ error: "Database error" });
+  }
 });
 
 app.listen(PORT, () => {
