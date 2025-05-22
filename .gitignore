@@ -1,0 +1,6 @@
+# Ignore environment file with secrets
+.env
+
+# Optional: also ignore node_modules and logs
+node_modules/
+*.log
