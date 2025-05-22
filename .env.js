@@ -1,7 +1,5 @@
-DB_HOST=mysql.railway.internal
-DB_USER=root
-DB_PASSWORD=YmRcdYHRwzmkCUzimOEBzEsyzUHMgvub
-DB_NAME=railway
-DB_PORT=3306
-
-PORT=5000
+DB_HOST=dpg-d0nf056uk2gs73btdir0-a.render.com
+DB_USER=eswar
+DB_PASSWORD=qnzIFXUULK9rS3xAD2vwimmgC7JaKrgr
+DB_NAME=crud_db_y3m6
+DB_PORT=5432
