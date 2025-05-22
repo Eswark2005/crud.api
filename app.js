@@ -10,12 +10,9 @@ const PORT = process.env.PORT || 5000;
 app.use(cors());
 app.use(express.json());
 
+// ✅ Use single DATABASE_URL for Render PostgreSQL
 const db = new Pool({
-  host: process.env.DB_HOST,
-  user: process.env.DB_USER,
-  password: process.env.DB_PASSWORD,
-  database: process.env.DB_NAME,
-  port: process.env.DB_PORT,
+  connectionString: process.env.DATABASE_URL,
   ssl: { rejectUnauthorized: false },
 });
 
@@ -23,7 +20,7 @@ db.connect()
   .then(() => console.log("✅ Connected to PostgreSQL"))
   .catch((err) => console.error("❌ DB connection error:", err));
 
-// Your existing routes here (GET, POST, PUT, DELETE)
+// Routes
 
 app.get("/users", (req, res) => {
   db.query("SELECT * FROM users", (err, results) => {
