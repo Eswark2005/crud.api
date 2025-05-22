@@ -1,34 +1,34 @@
+require('dotenv').config(); // Load environment variables from .env
+
 const express = require('express');
 const mysql = require('mysql2');
 const cors = require("cors");
 const validator = require("validator");
 
-const app = express(); // ✅ Only declare this ONCE
-const PORT = 5000;
+const app = express();
+const PORT = process.env.PORT || 5000;
 
-// Middlewares
 app.use(cors());
 app.use(express.json());
 
-// MySQL Connection
+// ✅ Railway MySQL Connection using environment variables
 const db = mysql.createConnection({
-  host: "localhost",
-  user: "root",
-  password: "Veda@2011",
-  database: "crud_db"
+  host: process.env.DB_HOST,
+  user: process.env.DB_USER,
+  password: process.env.DB_PASSWORD,
+  database: process.env.DB_NAME,
+  port: process.env.DB_PORT,
 });
 
 db.connect((err) => {
   if (err) {
     console.error("Database connection failed:", err);
   } else {
-    console.log("Connected to MySQL Database");
+    console.log("✅ Connected to Railway MySQL Database");
   }
 });
 
-// Routes
-
-// GET all users
+// ✅ GET all users
 app.get("/users", (req, res) => {
   db.query("SELECT * FROM users", (err, results) => {
     if (err) return res.status(500).send(err);
@@ -58,7 +58,7 @@ app.post("/users", (req, res) => {
   });
 });
 
-// PUT user
+// ✅ PUT user
 app.put("/users/:id", (req, res) => {
   const { name, email } = req.body;
   const { id } = req.params;
@@ -68,7 +68,7 @@ app.put("/users/:id", (req, res) => {
   });
 });
 
-// DELETE user
+// ✅ DELETE user
 app.delete("/users/:id", (req, res) => {
   const { id } = req.params;
   db.query("DELETE FROM users WHERE id = ?", [id], (err, result) => {
@@ -77,8 +77,7 @@ app.delete("/users/:id", (req, res) => {
   });
 });
 
-// Start server
+// ✅ Start server
 app.listen(PORT, () => {
-  console.log(`Server is running on http://localhost:${PORT}`);
+  console.log(`🚀 Server is running on http://localhost:${PORT}`);
 });
-
