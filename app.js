@@ -12,13 +12,14 @@ const PORT = process.env.PORT || 5000;
 app.use(cors());
 app.use(express.json());
 
-// Test connection
+// Test DB connection
 pool.connect()
   .then(() => console.log("✅ Connected to PostgreSQL (Neon)"))
   .catch((err) => console.error("❌ DB connection error:", err));
 
-// Routes
+// =================== ROUTES ===================
 
+// Get all users
 app.get("/users", async (req, res) => {
   try {
     const { rows } = await pool.query("SELECT * FROM users");
@@ -28,6 +29,7 @@ app.get("/users", async (req, res) => {
   }
 });
 
+// Create new user (used for management, not signup)
 app.post("/users", async (req, res) => {
   const { name, email } = req.body;
 
@@ -48,6 +50,7 @@ app.post("/users", async (req, res) => {
   }
 });
 
+// Update user
 app.put("/users/:id", async (req, res) => {
   const { name, email } = req.body;
   const { id } = req.params;
@@ -75,6 +78,7 @@ app.put("/users/:id", async (req, res) => {
   }
 });
 
+// Delete user
 app.delete("/users/:id", async (req, res) => {
   const { id } = req.params;
 
@@ -85,6 +89,61 @@ app.delete("/users/:id", async (req, res) => {
     res.status(500).json({ error: "Database error" });
   }
 });
+
+// SIGNUP route
+app.post("/signup", async (req, res) => {
+  const { name, email, password } = req.body;
+
+  if (!name || !email || !password) {
+    return res.status(400).json({ error: "All fields are required" });
+  }
+
+  try {
+    const existingUser = await pool.query("SELECT * FROM users WHERE email = $1", [email]);
+    if (existingUser.rows.length > 0) {
+      return res.status(409).json({ error: "Email already registered" });
+    }
+
+    await pool.query(
+      "INSERT INTO users (name, email, password) VALUES ($1, $2, $3)",
+      [name, email, password]
+    );
+
+    res.status(201).json({ message: "User registered successfully" });
+  } catch (err) {
+    res.status(500).json({ error: "Database error" });
+  }
+});
+
+// LOGIN route
+app.post("/login", async (req, res) => {
+  const { email, password } = req.body;
+
+  if (!email || !password) {
+    return res.status(400).json({ error: "Missing email or password" });
+  }
+
+  try {
+    const { rows } = await pool.query("SELECT * FROM users WHERE email = $1", [email]);
+
+    if (rows.length === 0) {
+      return res.status(401).json({ error: "User not found" });
+    }
+
+    const user = rows[0];
+
+    if (password !== user.password) {
+      return res.status(401).json({ error: "Wrong password" });
+    }
+
+    res.json({ message: "Login successful" });
+  } catch (err) {
+    console.error("Login error:", err);
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
+// =================== START SERVER ===================
 
 app.listen(PORT, () => {
   console.log(`🚀 Server is running on http://localhost:${PORT}`);

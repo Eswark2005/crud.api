@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "description": "A simple CRUD API with Express and MySQL",
   "main": "app.js",
-   "type": "module",  
+  "type": "module",
   "scripts": {
     "start": "node app.js"
   },
