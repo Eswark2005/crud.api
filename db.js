@@ -1,3 +1,4 @@
+// db.js
 import pkg from 'pg';
 const { Pool } = pkg;
 import dotenv from 'dotenv';
@@ -9,7 +10,21 @@ const pool = new Pool({
   ssl: {
     rejectUnauthorized: false, // required for Neon PostgreSQL
   },
-  // Optional: you can add more config here, like max connections, idle timeout, etc.
 });
 
+// Global error handler for idle clients
+pool.on('error', (err) => {
+  console.error('❌ Unexpected error on idle PostgreSQL client', err);
+  process.exit(-1);
+});
+
+// Test connection on startup
+pool.query('SELECT NOW()')
+  .then(() => console.log("✅ Connected to PostgreSQL (Neon)"))
+  .catch((err) => {
+    console.error("❌ Error connecting to DB at startup:", err);
+    process.exit(1);
+  });
+
 export default pool;
+
