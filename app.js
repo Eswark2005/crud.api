@@ -12,7 +12,7 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 const SECRET_KEY = process.env.JWT_SECRET;
 
-// ✅ Updated CORS configuration
+// ✅ CORS configuration for both Vercel domains
 app.use(cors({
   origin: [
     "https://crud-api-frontend-react-kx8p.vercel.app",
@@ -22,13 +22,15 @@ app.use(cors({
   credentials: true,
 }));
 
+// ✅ Handle CORS preflight requests
+app.options("*", cors());
+
 app.use(express.json());
 
-// Middleware to verify JWT token for protected routes
+// ✅ JWT middleware
 function authenticateToken(req, res, next) {
   const authHeader = req.headers['authorization'];
-  const token = authHeader && authHeader.split(" ")[1]; // Bearer TOKEN
-
+  const token = authHeader && authHeader.split(" ")[1];
   if (!token) return res.status(401).json({ error: "Access denied, token missing" });
 
   jwt.verify(token, SECRET_KEY, (err, user) => {
@@ -38,9 +40,9 @@ function authenticateToken(req, res, next) {
   });
 }
 
-// =================== ROUTES ===================
+// ================== ROUTES ==================
 
-// Signup route - hash password before saving
+// ✅ Signup route
 app.post("/signup", async (req, res) => {
   const { name, email, password } = req.body;
 
@@ -71,7 +73,7 @@ app.post("/signup", async (req, res) => {
   }
 });
 
-// Login route - validate password and return JWT token
+// ✅ Login route
 app.post("/login", async (req, res) => {
   const { email, password } = req.body;
 
@@ -81,7 +83,6 @@ app.post("/login", async (req, res) => {
 
   try {
     const { rows } = await pool.query("SELECT * FROM users WHERE email = $1", [email]);
-
     if (rows.length === 0) {
       return res.status(401).json({ error: "User not found" });
     }
@@ -106,9 +107,7 @@ app.post("/login", async (req, res) => {
   }
 });
 
-// Protect the following CRUD routes with authentication middleware
-
-// Get all users
+// ✅ Get all users (protected)
 app.get("/users", authenticateToken, async (req, res) => {
   try {
     const { rows } = await pool.query("SELECT id, name, email FROM users");
@@ -118,7 +117,7 @@ app.get("/users", authenticateToken, async (req, res) => {
   }
 });
 
-// Create new user (used for management, not signup)
+// ✅ Create a user (protected)
 app.post("/users", authenticateToken, async (req, res) => {
   const { name, email } = req.body;
 
@@ -139,7 +138,7 @@ app.post("/users", authenticateToken, async (req, res) => {
   }
 });
 
-// Update user
+// ✅ Update a user (protected)
 app.put("/users/:id", authenticateToken, async (req, res) => {
   const { name, email } = req.body;
   const { id } = req.params;
@@ -149,12 +148,18 @@ app.put("/users/:id", authenticateToken, async (req, res) => {
   }
 
   try {
-    const { rows } = await pool.query("SELECT * FROM users WHERE email = $1 AND id != $2", [email, id]);
+    const { rows } = await pool.query(
+      "SELECT * FROM users WHERE email = $1 AND id != $2",
+      [email, id]
+    );
     if (rows.length > 0) {
       return res.status(409).json({ error: "Email already in use" });
     }
 
-    const result = await pool.query("UPDATE users SET name = $1, email = $2 WHERE id = $3", [name, email, id]);
+    const result = await pool.query(
+      "UPDATE users SET name = $1, email = $2 WHERE id = $3",
+      [name, email, id]
+    );
 
     if (result.rowCount === 0) {
       return res.status(404).json({ error: "User not found" });
@@ -167,7 +172,7 @@ app.put("/users/:id", authenticateToken, async (req, res) => {
   }
 });
 
-// Delete user
+// ✅ Delete a user (protected)
 app.delete("/users/:id", authenticateToken, async (req, res) => {
   const { id } = req.params;
 
@@ -179,7 +184,7 @@ app.delete("/users/:id", authenticateToken, async (req, res) => {
   }
 });
 
-// =================== START SERVER ===================
+// ================== Start Server ==================
 app.listen(PORT, () => {
   console.log(`🚀 Server is running on http://localhost:${PORT}`);
 });
