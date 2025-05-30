@@ -94,14 +94,17 @@ app.delete("/users/:id", async (req, res) => {
 // SIGNUP route
 app.post("/signup", async (req, res) => {
   const { name, email, password } = req.body;
+  console.log("Signup data received:", { name, email, password: password ? "****" : null });
 
   if (!name || !email || !password) {
+    console.log("Signup failed: missing fields");
     return res.status(400).json({ error: "All fields are required" });
   }
 
   try {
     const existingUser = await pool.query("SELECT * FROM users WHERE email = $1", [email]);
     if (existingUser.rows.length > 0) {
+      console.log("Signup failed: email already registered");
       return res.status(409).json({ error: "Email already registered" });
     }
 
@@ -110,9 +113,11 @@ app.post("/signup", async (req, res) => {
       [name, email, password]
     );
 
-    res.status(201).json({ message: "User registered successfully" });
+    console.log("Signup success: user created");
+    return res.status(201).json({ message: "User registered successfully" });
   } catch (err) {
-    res.status(500).json({ error: "Database error" });
+    console.error("Signup error:", err);
+    return res.status(500).json({ error: "Database error" });
   }
 });
 
