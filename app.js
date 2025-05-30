@@ -12,8 +12,12 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 const SECRET_KEY = process.env.JWT_SECRET;
 
+// ✅ Updated CORS configuration
 app.use(cors({
-  origin: "https://crud-api-frontend-react-kx8p.vercel.app",
+  origin: [
+    "https://crud-api-frontend-react-kx8p.vercel.app",
+    "https://crud-api-frontend-react-kx8p-cm9skpxvn-eswark2005s-projects.vercel.app"
+  ],
   methods: ["GET", "POST", "PUT", "DELETE"],
   credentials: true,
 }));
