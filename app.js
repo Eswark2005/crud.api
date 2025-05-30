@@ -18,11 +18,6 @@ app.use(cors({
 
 app.use(express.json());
 
-// Test DB connection
-pool.connect()
-  .then(() => console.log("✅ Connected to PostgreSQL (Neon)"))
-  .catch((err) => console.error("❌ DB connection error:", err));
-
 // =================== ROUTES ===================
 
 // Get all users
