@@ -29,8 +29,8 @@ app.use(
       "https://crud-api-frontend-react-kx8p-qm4imj0qb-eswark2005s-projects.vercel.app",
       "https://crud-api-frontend-react-kx8p-3o8h57ixb-eswark2005s-projects.vercel.app",
       "https://crud-api-frontend-react-kx8p-fom9qab4n-eswark2005s-projects.vercel.app",
-      // ✅ ADD THIS LINE:
-      "https://crud-api-frontend-react-kx8p-g2i1b2ozr-eswark2005s-projects.vercel.app"
+      "https://crud-api-frontend-react-kx8p-g2i1b2ozr-eswark2005s-projects.vercel.app",
+      "https://crud-api-frontend-react-kx8p-rmf3xs31j-eswark2005s-projects.vercel.app"
     ],
     methods: ["GET", "POST", "PUT", "DELETE"],
     credentials: true,
