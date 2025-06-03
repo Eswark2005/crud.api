@@ -13,7 +13,6 @@ export default pool;
 
 
 // ======================= middleware/auth.js =======================
-import jwt from "jsonwebtoken";
 const SECRET_KEY = process.env.JWT_SECRET;
 
 export function authenticateToken(req, res, next) {
