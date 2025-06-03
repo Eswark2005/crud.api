@@ -1,34 +1,22 @@
-import express from "express";
-import pool from "./db.js"; // PostgreSQL connection
-import cors from "cors";
-import validator from "validator";
+// ======================= db.js =======================
+import pkg from 'pg';
+const { Pool } = pkg;
 import dotenv from "dotenv";
-import bcrypt from "bcryptjs";
-import jwt from "jsonwebtoken";
-
 dotenv.config();
 
-const app = express();
-const PORT = process.env.PORT || 5000;
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: { rejectUnauthorized: false },
+});
+
+export default pool;
+
+
+// ======================= middleware/auth.js =======================
+import jwt from "jsonwebtoken";
 const SECRET_KEY = process.env.JWT_SECRET;
 
-// ✅ CORS configuration for both Vercel domains
-app.use(cors({
-  origin: [
-    "https://crud-api-frontend-react-kx8p.vercel.app",
-    "https://crud-api-frontend-react-kx8p-cm9skpxvn-eswark2005s-projects.vercel.app"
-  ],
-  methods: ["GET", "POST", "PUT", "DELETE"],
-  credentials: true,
-}));
-
-// ✅ Handle CORS preflight requests
-app.options("*", cors());
-
-app.use(express.json());
-
-// ✅ JWT middleware
-function authenticateToken(req, res, next) {
+export function authenticateToken(req, res, next) {
   const authHeader = req.headers['authorization'];
   const token = authHeader && authHeader.split(" ")[1];
   if (!token) return res.status(401).json({ error: "Access denied, token missing" });
@@ -40,66 +28,54 @@ function authenticateToken(req, res, next) {
   });
 }
 
-// ================== ROUTES ==================
 
-// ✅ Signup route
-app.post("/signup", async (req, res) => {
+// ======================= routes/auth.routes.js =======================
+import express from "express";
+import bcrypt from "bcryptjs";
+import jwt from "jsonwebtoken";
+import pool from "../db.js";
+import validator from "validator";
+
+const router = express.Router();
+const SECRET_KEY = process.env.JWT_SECRET;
+
+router.post("/signup", async (req, res) => {
   const { name, email, password } = req.body;
-
-  if (!name || !email || !password) {
-    return res.status(400).json({ error: "All fields are required" });
-  }
-  if (!validator.isEmail(email)) {
-    return res.status(400).json({ error: "Invalid email format" });
-  }
+  if (!name || !email || !password)
+    return res.status(400).json({ error: "All fields required" });
+  if (!validator.isEmail(email))
+    return res.status(400).json({ error: "Invalid email" });
 
   try {
-    const existingUser = await pool.query("SELECT * FROM users WHERE email = $1", [email]);
-    if (existingUser.rows.length > 0) {
+    const existing = await pool.query("SELECT * FROM users WHERE email = $1", [email]);
+    if (existing.rows.length > 0)
       return res.status(409).json({ error: "Email already registered" });
-    }
 
     const hashedPassword = await bcrypt.hash(password, 10);
+    await pool.query("INSERT INTO users (name, email, password) VALUES ($1, $2, $3)", [name, email, hashedPassword]);
 
-    await pool.query(
-      "INSERT INTO users (name, email, password) VALUES ($1, $2, $3)",
-      [name, email, hashedPassword]
-    );
-
-    return res.status(201).json({ message: "User registered successfully" });
+    res.status(201).json({ message: "User registered" });
   } catch (err) {
     console.error("Signup error:", err);
-    return res.status(500).json({ error: "Database error" });
+    res.status(500).json({ error: "Server error" });
   }
 });
 
-// ✅ Login route
-app.post("/login", async (req, res) => {
+router.post("/login", async (req, res) => {
   const { email, password } = req.body;
-
-  if (!email || !password) {
-    return res.status(400).json({ error: "Missing email or password" });
-  }
+  if (!email || !password)
+    return res.status(400).json({ error: "Missing credentials" });
 
   try {
     const { rows } = await pool.query("SELECT * FROM users WHERE email = $1", [email]);
-    if (rows.length === 0) {
+    if (rows.length === 0)
       return res.status(401).json({ error: "User not found" });
-    }
 
     const user = rows[0];
-    const validPassword = await bcrypt.compare(password, user.password);
+    const match = await bcrypt.compare(password, user.password);
+    if (!match) return res.status(401).json({ error: "Wrong password" });
 
-    if (!validPassword) {
-      return res.status(401).json({ error: "Wrong password" });
-    }
-
-    const token = jwt.sign(
-      { id: user.id, email: user.email, name: user.name },
-      SECRET_KEY,
-      { expiresIn: "1h" }
-    );
-
+    const token = jwt.sign({ id: user.id, email: user.email, name: user.name }, SECRET_KEY, { expiresIn: "1h" });
     res.json({ message: "Login successful", token });
   } catch (err) {
     console.error("Login error:", err);
@@ -107,8 +83,18 @@ app.post("/login", async (req, res) => {
   }
 });
 
-// ✅ Get all users (protected)
-app.get("/users", authenticateToken, async (req, res) => {
+export default router;
+
+
+// ======================= routes/users.routes.js =======================
+import express from "express";
+import validator from "validator";
+import pool from "../db.js";
+import { authenticateToken } from "../middleware/auth.js";
+
+const router = express.Router();
+
+router.get("/", authenticateToken, async (req, res) => {
   try {
     const { rows } = await pool.query("SELECT id, name, email FROM users");
     res.json(rows);
@@ -117,74 +103,84 @@ app.get("/users", authenticateToken, async (req, res) => {
   }
 });
 
-// ✅ Create a user (protected)
-app.post("/users", authenticateToken, async (req, res) => {
+router.post("/", authenticateToken, async (req, res) => {
   const { name, email } = req.body;
-
-  if (!validator.isEmail(email)) {
-    return res.status(400).json({ error: "Invalid email format" });
-  }
+  if (!validator.isEmail(email))
+    return res.status(400).json({ error: "Invalid email" });
 
   try {
     const { rows } = await pool.query("SELECT * FROM users WHERE email = $1", [email]);
-    if (rows.length > 0) {
-      return res.status(409).json({ error: "Email already in use" });
-    }
+    if (rows.length > 0)
+      return res.status(409).json({ error: "Email in use" });
 
     await pool.query("INSERT INTO users (name, email) VALUES ($1, $2)", [name, email]);
-    res.status(201).json({ message: "User added successfully" });
+    res.status(201).json({ message: "User created" });
   } catch (err) {
     res.status(500).json({ error: "Database error" });
   }
 });
 
-// ✅ Update a user (protected)
-app.put("/users/:id", authenticateToken, async (req, res) => {
+router.put("/:id", authenticateToken, async (req, res) => {
   const { name, email } = req.body;
   const { id } = req.params;
-
-  if (!validator.isEmail(email)) {
-    return res.status(400).json({ error: "Invalid email format" });
-  }
+  if (!validator.isEmail(email))
+    return res.status(400).json({ error: "Invalid email" });
 
   try {
-    const { rows } = await pool.query(
-      "SELECT * FROM users WHERE email = $1 AND id != $2",
-      [email, id]
-    );
-    if (rows.length > 0) {
-      return res.status(409).json({ error: "Email already in use" });
-    }
+    const { rows } = await pool.query("SELECT * FROM users WHERE email = $1 AND id != $2", [email, id]);
+    if (rows.length > 0)
+      return res.status(409).json({ error: "Email in use" });
 
-    const result = await pool.query(
-      "UPDATE users SET name = $1, email = $2 WHERE id = $3",
-      [name, email, id]
-    );
-
-    if (result.rowCount === 0) {
+    const result = await pool.query("UPDATE users SET name = $1, email = $2 WHERE id = $3", [name, email, id]);
+    if (result.rowCount === 0)
       return res.status(404).json({ error: "User not found" });
-    }
 
-    res.json({ message: "User updated successfully" });
-  } catch (err) {
-    console.error("Update error:", err);
-    res.status(500).json({ error: "Database error", details: err.message });
-  }
-});
-
-// ✅ Delete a user (protected)
-app.delete("/users/:id", authenticateToken, async (req, res) => {
-  const { id } = req.params;
-
-  try {
-    await pool.query("DELETE FROM users WHERE id = $1", [id]);
-    res.json({ message: "User deleted successfully" });
+    res.json({ message: "User updated" });
   } catch (err) {
     res.status(500).json({ error: "Database error" });
   }
 });
 
-// ================== Start Server ==================
+router.delete("/:id", authenticateToken, async (req, res) => {
+  const { id } = req.params;
+  try {
+    await pool.query("DELETE FROM users WHERE id = $1", [id]);
+    res.json({ message: "User deleted" });
+  } catch (err) {
+    res.status(500).json({ error: "Database error" });
+  }
+});
+
+export default router;
+
+
+// ======================= app.js =======================
+import express from "express";
+import cors from "cors";
+import dotenv from "dotenv";
+
+import authRoutes from "./routes/auth.routes.js";
+import userRoutes from "./routes/users.routes.js";
+
+dotenv.config();
+const app = express();
+const PORT = process.env.PORT || 5000;
+
+app.use(cors({
+  origin: [
+    "https://crud-api-frontend-react-kx8p.vercel.app",
+    "https://crud-api-frontend-react-kx8p-cm9skpxvn-eswark2005s-projects.vercel.app"
+  ],
+  methods: ["GET", "POST", "PUT", "DELETE"],
+  credentials: true,
+}));
+
+app.options("*", cors());
+app.use(express.json());
+
+app.use("/auth", authRoutes);
+app.use("/users", userRoutes);
+
 app.listen(PORT, () => {
-  console.log(`🚀 Server is running on http://localhost:${PORT}`);
+  console.log(`🚀 Server running at http://localhost:${PORT}`);
 });
