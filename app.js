@@ -20,18 +20,15 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 const JWT_SECRET = process.env.JWT_SECRET;
 
-// ✅ CORS Setup: Add all your Vercel URLs here
 app.use(
   cors({
-    origin: [
-      "https://crud-api-frontend-react-kx8p.vercel.app",
-      "https://crud-api-frontend-react-kx8p-cm9skpxvn-eswark2005s-projects.vercel.app",
-      "https://crud-api-frontend-react-kx8p-qm4imj0qb-eswark2005s-projects.vercel.app",
-      "https://crud-api-frontend-react-kx8p-3o8h57ixb-eswark2005s-projects.vercel.app",
-      "https://crud-api-frontend-react-kx8p-fom9qab4n-eswark2005s-projects.vercel.app",
-      "https://crud-api-frontend-react-kx8p-g2i1b2ozr-eswark2005s-projects.vercel.app",
-      "https://crud-api-frontend-react-kx8p-rmf3xs31j-eswark2005s-projects.vercel.app"
-    ],
+    origin: (origin, callback) => {
+      if (!origin || origin.endsWith(".vercel.app")) {
+        callback(null, true);
+      } else {
+        callback(new Error("Not allowed by CORS"));
+      }
+    },
     methods: ["GET", "POST", "PUT", "DELETE"],
     credentials: true,
   })
@@ -39,7 +36,6 @@ app.use(
 
 app.use(express.json());
 
-// ✅ JWT Auth Middleware
 function authenticateToken(req, res, next) {
   const authHeader = req.headers["authorization"];
   const token = authHeader && authHeader.split(" ")[1];
@@ -52,7 +48,6 @@ function authenticateToken(req, res, next) {
   });
 }
 
-// ✅ Signup Route
 app.post("/auth/signup", async (req, res) => {
   const { name, email, password } = req.body;
   if (!name || !email || !password)
@@ -78,7 +73,6 @@ app.post("/auth/signup", async (req, res) => {
   }
 });
 
-// ✅ Login Route
 app.post("/auth/login", async (req, res) => {
   const { email, password } = req.body;
   if (!email || !password)
@@ -106,7 +100,6 @@ app.post("/auth/login", async (req, res) => {
   }
 });
 
-// ✅ Get All Users (Protected)
 app.get("/users", authenticateToken, async (req, res) => {
   try {
     const { rows } = await pool.query("SELECT id, name, email FROM users");
@@ -116,7 +109,6 @@ app.get("/users", authenticateToken, async (req, res) => {
   }
 });
 
-// ✅ Create New User (Protected)
 app.post("/users", authenticateToken, async (req, res) => {
   const { name, email } = req.body;
   if (!name || !email)
@@ -136,7 +128,6 @@ app.post("/users", authenticateToken, async (req, res) => {
   }
 });
 
-// ✅ Update User (Protected)
 app.put("/users/:id", authenticateToken, async (req, res) => {
   const { name, email } = req.body;
   const { id } = req.params;
@@ -166,7 +157,6 @@ app.put("/users/:id", authenticateToken, async (req, res) => {
   }
 });
 
-// ✅ Delete User (Protected)
 app.delete("/users/:id", authenticateToken, async (req, res) => {
   const { id } = req.params;
   try {
@@ -180,7 +170,6 @@ app.delete("/users/:id", authenticateToken, async (req, res) => {
   }
 });
 
-// ✅ Start Server
 app.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
 });
