@@ -12,7 +12,7 @@ const { Pool } = pkg;
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
   ssl: {
-    rejectUnauthorized: false, // required for platforms like Neon
+    rejectUnauthorized: false,
   },
 });
 
@@ -20,22 +20,24 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 const JWT_SECRET = process.env.JWT_SECRET;
 
-// Middleware
+// ✅ CORS Setup: Add all your Vercel URLs here
 app.use(
   cors({
     origin: [
       "https://crud-api-frontend-react-kx8p.vercel.app",
       "https://crud-api-frontend-react-kx8p-cm9skpxvn-eswark2005s-projects.vercel.app",
       "https://crud-api-frontend-react-kx8p-qm4imj0qb-eswark2005s-projects.vercel.app",
-      "https://crud-api-frontend-react-kx8p-3o8h57ixb-eswark2005s-projects.vercel.app" // ✅ newly added
+      "https://crud-api-frontend-react-kx8p-3o8h57ixb-eswark2005s-projects.vercel.app",
+      "https://crud-api-frontend-react-kx8p-fom9qab4n-eswark2005s-projects.vercel.app"
     ],
     methods: ["GET", "POST", "PUT", "DELETE"],
     credentials: true,
   })
 );
+
 app.use(express.json());
 
-// JWT Authentication Middleware
+// ✅ JWT Auth Middleware
 function authenticateToken(req, res, next) {
   const authHeader = req.headers["authorization"];
   const token = authHeader && authHeader.split(" ")[1];
@@ -48,7 +50,7 @@ function authenticateToken(req, res, next) {
   });
 }
 
-// Auth Routes
+// ✅ Signup Route
 app.post("/auth/signup", async (req, res) => {
   const { name, email, password } = req.body;
   if (!name || !email || !password)
@@ -74,6 +76,7 @@ app.post("/auth/signup", async (req, res) => {
   }
 });
 
+// ✅ Login Route
 app.post("/auth/login", async (req, res) => {
   const { email, password } = req.body;
   if (!email || !password)
@@ -101,7 +104,7 @@ app.post("/auth/login", async (req, res) => {
   }
 });
 
-// CRUD Routes (Protected)
+// ✅ Get All Users (Protected)
 app.get("/users", authenticateToken, async (req, res) => {
   try {
     const { rows } = await pool.query("SELECT id, name, email FROM users");
@@ -111,6 +114,7 @@ app.get("/users", authenticateToken, async (req, res) => {
   }
 });
 
+// ✅ Create New User (Protected)
 app.post("/users", authenticateToken, async (req, res) => {
   const { name, email } = req.body;
   if (!name || !email)
@@ -130,6 +134,7 @@ app.post("/users", authenticateToken, async (req, res) => {
   }
 });
 
+// ✅ Update User (Protected)
 app.put("/users/:id", authenticateToken, async (req, res) => {
   const { name, email } = req.body;
   const { id } = req.params;
@@ -159,6 +164,7 @@ app.put("/users/:id", authenticateToken, async (req, res) => {
   }
 });
 
+// ✅ Delete User (Protected)
 app.delete("/users/:id", authenticateToken, async (req, res) => {
   const { id } = req.params;
   try {
@@ -172,7 +178,7 @@ app.delete("/users/:id", authenticateToken, async (req, res) => {
   }
 });
 
-// Server Start
+// ✅ Start Server
 app.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
 });
