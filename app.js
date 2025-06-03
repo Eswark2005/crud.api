@@ -21,14 +21,17 @@ const PORT = process.env.PORT || 5000;
 const JWT_SECRET = process.env.JWT_SECRET;
 
 // Middleware
-app.use(cors({
-  origin: [
-    "https://crud-api-frontend-react-kx8p.vercel.app",
-    "https://crud-api-frontend-react-kx8p-cm9skpxvn-eswark2005s-projects.vercel.app"
-  ],
-  methods: ["GET", "POST", "PUT", "DELETE"],
-  credentials: true,
-}));
+app.use(
+  cors({
+    origin: [
+      "https://crud-api-frontend-react-kx8p.vercel.app",
+      "https://crud-api-frontend-react-kx8p-cm9skpxvn-eswark2005s-projects.vercel.app",
+      "https://crud-api-frontend-react-kx8p-qm4imj0qb-eswark2005s-projects.vercel.app",
+    ],
+    methods: ["GET", "POST", "PUT", "DELETE"],
+    credentials: true,
+  })
+);
 app.use(express.json());
 
 // JWT Authentication Middleware
