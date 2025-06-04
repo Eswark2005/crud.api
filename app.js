@@ -5,6 +5,7 @@ import pkg from "pg";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import validator from "validator";
+import axios from "axios"; // Required to make requests to OpenAI API
 
 dotenv.config();
 
@@ -36,6 +37,7 @@ app.use(
 
 app.use(express.json());
 
+// Middleware to authenticate JWT token
 function authenticateToken(req, res, next) {
   const authHeader = req.headers["authorization"];
   const token = authHeader && authHeader.split(" ")[1];
@@ -47,6 +49,8 @@ function authenticateToken(req, res, next) {
     next();
   });
 }
+
+// User Authentication Routes
 
 app.post("/auth/signup", async (req, res) => {
   const { name, email, password } = req.body;
@@ -100,6 +104,38 @@ app.post("/auth/login", async (req, res) => {
   }
 });
 
+// OpenAI GPT Integration Route
+app.post("/api/chat", authenticateToken, async (req, res) => {
+  const { userInput } = req.body;
+  
+  if (!userInput) return res.status(400).json({ error: "User input required" });
+
+  try {
+    // Call OpenAI API for chat response
+    const openaiResponse = await axios.post(
+      "https://api.openai.com/v1/completions",
+      {
+        model: "text-davinci-003", // You can change the model if necessary
+        prompt: userInput,
+        max_tokens: 150, // You can adjust the token count
+      },
+      {
+        headers: {
+          "Authorization": `Bearer ${process.env.OPENAI_API_KEY}`,
+        },
+      }
+    );
+
+    // Send OpenAI response back to the frontend
+    const botReply = openaiResponse.data.choices[0].text.trim();
+    res.json({ reply: botReply });
+  } catch (err) {
+    console.error("Error contacting OpenAI API:", err);
+    res.status(500).json({ error: "Error with AI service" });
+  }
+});
+
+// User Management Routes
 app.get("/users", authenticateToken, async (req, res) => {
   try {
     const { rows } = await pool.query("SELECT id, name, email FROM users");
@@ -170,6 +206,7 @@ app.delete("/users/:id", authenticateToken, async (req, res) => {
   }
 });
 
+// Server Setup
 app.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
 });
