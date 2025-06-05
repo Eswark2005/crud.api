@@ -113,7 +113,7 @@ app.post("/api/chat", authenticateToken, async (req, res) => {
   try {
     // Call OpenAI API for chat response
     const openaiResponse = await axios.post(
-      "https://api.openai.com/v1/completions",
+      "https://api.openai.com/v1/chat/completions",
       {
         model: "text-davinci-003", // You can change the model if necessary
         prompt: userInput,
