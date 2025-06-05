@@ -5,7 +5,7 @@ import pkg from "pg";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import validator from "validator";
-import axios from "axios"; // Required to make requests to OpenAI API
+import axios from "axios";
 
 dotenv.config();
 
@@ -24,7 +24,11 @@ const JWT_SECRET = process.env.JWT_SECRET;
 app.use(
   cors({
     origin: (origin, callback) => {
-      if (!origin || origin.endsWith(".vercel.app")) {
+      const allowedOrigins = [
+        "http://localhost:3000",
+        "https://crud-api-frontend-react-kx8p.vercel.app",
+      ];
+      if (!origin || allowedOrigins.includes(origin)) {
         callback(null, true);
       } else {
         callback(new Error("Not allowed by CORS"));
@@ -50,8 +54,7 @@ function authenticateToken(req, res, next) {
   });
 }
 
-// User Authentication Routes
-
+// Signup
 app.post("/auth/signup", async (req, res) => {
   const { name, email, password } = req.body;
   if (!name || !email || !password)
@@ -77,6 +80,7 @@ app.post("/auth/signup", async (req, res) => {
   }
 });
 
+// Login
 app.post("/auth/login", async (req, res) => {
   const { email, password } = req.body;
   if (!email || !password)
@@ -104,33 +108,31 @@ app.post("/auth/login", async (req, res) => {
   }
 });
 
-// OpenAI GPT Integration Route
+// Chatbot Endpoint (OpenAI)
 app.post("/api/chat", authenticateToken, async (req, res) => {
   const { userInput } = req.body;
-  
+
   if (!userInput) return res.status(400).json({ error: "User input required" });
 
   try {
-    // Call OpenAI API for chat response
     const openaiResponse = await axios.post(
       "https://api.openai.com/v1/chat/completions",
       {
-        model: "text-davinci-003", // You can change the model if necessary
-        prompt: userInput,
-        max_tokens: 150, // You can adjust the token count
+        model: "gpt-3.5-turbo",
+        messages: [{ role: "user", content: userInput }],
+        max_tokens: 150,
       },
       {
         headers: {
-          "Authorization": `Bearer ${process.env.OPENAI_API_KEY}`,
+          Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
         },
       }
     );
 
-    // Send OpenAI response back to the frontend
-    const botReply = openaiResponse.data.choices[0].text.trim();
+    const botReply = openaiResponse.data.choices[0].message.content.trim();
     res.json({ reply: botReply });
   } catch (err) {
-    console.error("Error contacting OpenAI API:", err);
+    console.error("Error contacting OpenAI API:", err?.response?.data || err.message);
     res.status(500).json({ error: "Error with AI service" });
   }
 });
@@ -206,7 +208,7 @@ app.delete("/users/:id", authenticateToken, async (req, res) => {
   }
 });
 
-// Server Setup
+// Start Server
 app.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
 });
