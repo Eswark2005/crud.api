@@ -21,6 +21,7 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 const JWT_SECRET = process.env.JWT_SECRET;
 
+// CORS middleware with better Vercel preview support and debug logs
 app.use(
   cors({
     origin: function (origin, callback) {
@@ -29,33 +30,45 @@ app.use(
         "https://crud-api-frontend-react-kx8p.vercel.app",
       ];
 
-      // Allow all preview deployments on Vercel
       if (
-        !origin ||
+        !origin || // Allow Postman, curl, no origin requests
         allowedOrigins.includes(origin) ||
-        origin.startsWith("https://crud-api-frontend-react-kx8p")
+        (origin && origin.startsWith("https://crud-api-frontend-react-kx8p"))
       ) {
         callback(null, true);
       } else {
-        console.log(`❌ Blocked CORS for origin: ${origin}`);
+        console.log(`❌ Blocked CORS request from origin: ${origin}`);
         callback(new Error("Not allowed by CORS"));
       }
     },
-    methods: ["GET", "POST", "PUT", "DELETE"],
     credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE"],
   })
 );
 
 app.use(express.json());
 
-// JWT Authentication Middleware
+// Health check route
+app.get("/", (req, res) => {
+  res.send("✅ API is running");
+});
+
+// JWT Authentication Middleware with debug logging
 function authenticateToken(req, res, next) {
   const authHeader = req.headers["authorization"];
+  console.log("🔐 Incoming Auth Header:", authHeader);
+
   const token = authHeader && authHeader.split(" ")[1];
-  if (!token) return res.status(401).json({ error: "Token required" });
+  if (!token) {
+    console.log("⚠️ No token provided");
+    return res.status(401).json({ error: "Token required" });
+  }
 
   jwt.verify(token, JWT_SECRET, (err, user) => {
-    if (err) return res.status(403).json({ error: "Invalid token" });
+    if (err) {
+      console.log("🚫 Token verification failed:", err.message);
+      return res.status(403).json({ error: "Invalid token" });
+    }
     req.user = user;
     next();
   });
