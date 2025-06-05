@@ -21,16 +21,19 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 const JWT_SECRET = process.env.JWT_SECRET;
 
+const allowedOrigins = [
+  "http://localhost:3000",
+  "https://crud-api-frontend-react-kx8p.vercel.app",
+];
+
+// ✅ Corrected CORS setup
 app.use(
   cors({
-    origin: (origin, callback) => {
-      const allowedOrigins = [
-        "http://localhost:3000",
-        "https://crud-api-frontend-react-kx8p.vercel.app",
-      ];
+    origin: function (origin, callback) {
       if (!origin || allowedOrigins.includes(origin)) {
         callback(null, true);
       } else {
+        console.log(`❌ Blocked CORS for origin: ${origin}`);
         callback(new Error("Not allowed by CORS"));
       }
     },
@@ -41,7 +44,7 @@ app.use(
 
 app.use(express.json());
 
-// Middleware to authenticate JWT token
+// JWT Authentication Middleware
 function authenticateToken(req, res, next) {
   const authHeader = req.headers["authorization"];
   const token = authHeader && authHeader.split(" ")[1];
@@ -54,7 +57,7 @@ function authenticateToken(req, res, next) {
   });
 }
 
-// Signup
+// ✅ Signup Route
 app.post("/auth/signup", async (req, res) => {
   const { name, email, password } = req.body;
   if (!name || !email || !password)
@@ -80,7 +83,7 @@ app.post("/auth/signup", async (req, res) => {
   }
 });
 
-// Login
+// ✅ Login Route
 app.post("/auth/login", async (req, res) => {
   const { email, password } = req.body;
   if (!email || !password)
@@ -108,7 +111,7 @@ app.post("/auth/login", async (req, res) => {
   }
 });
 
-// Chatbot Endpoint (OpenAI)
+// ✅ Chatbot Route
 app.post("/api/chat", authenticateToken, async (req, res) => {
   const { userInput } = req.body;
 
@@ -137,7 +140,7 @@ app.post("/api/chat", authenticateToken, async (req, res) => {
   }
 });
 
-// User Management Routes
+// ✅ Users CRUD Routes
 app.get("/users", authenticateToken, async (req, res) => {
   try {
     const { rows } = await pool.query("SELECT id, name, email FROM users");
@@ -208,7 +211,7 @@ app.delete("/users/:id", authenticateToken, async (req, res) => {
   }
 });
 
-// Start Server
+// ✅ Start Server
 app.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
 });
