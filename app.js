@@ -86,7 +86,13 @@ app.post("/auth/signup", async (req, res) => {
       [name, email, hashedPassword]
     );
 
-    res.status(201).json({ message: "User registered" });
+    const token = jwt.sign({ name, email }, JWT_SECRET, { expiresIn: "1h" });
+
+    res.status(201).json({
+      message: "User registered",
+      token,
+      user: { name, email },
+    });
   } catch (err) {
     console.error("Signup error:", err);
     res.status(500).json({ error: "Server error" });
@@ -113,7 +119,7 @@ app.post("/auth/login", async (req, res) => {
       { expiresIn: "1h" }
     );
 
-    res.json({ message: "Login successful", token });
+    res.json({ message: "Login successful", token, user: { name: user.name, email: user.email } });
   } catch (err) {
     console.error("Login error:", err);
     res.status(500).json({ error: "Server error" });
@@ -217,12 +223,10 @@ app.delete("/users/:id", authenticateToken, async (req, res) => {
   }
 });
 
-// ✅ GET /me route
 app.get("/me", authenticateToken, (req, res) => {
   res.json({ user: req.user });
 });
 
-// ✅ Start server
 app.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
 });
