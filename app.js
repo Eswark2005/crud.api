@@ -21,7 +21,6 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 const JWT_SECRET = process.env.JWT_SECRET;
 
-// CORS middleware with better Vercel preview support and debug logs
 app.use(
   cors({
     origin: function (origin, callback) {
@@ -31,9 +30,9 @@ app.use(
       ];
 
       if (
-        !origin || // Allow Postman, curl, no origin requests
+        !origin ||
         allowedOrigins.includes(origin) ||
-        (origin && origin.startsWith("https://crud-api-frontend-react-kx8p"))
+        origin.startsWith("https://crud-api-frontend-react-kx8p")
       ) {
         callback(null, true);
       } else {
@@ -48,25 +47,20 @@ app.use(
 
 app.use(express.json());
 
-// Health check route
 app.get("/", (req, res) => {
   res.send("✅ API is running");
 });
 
-// JWT Authentication Middleware with debug logging
 function authenticateToken(req, res, next) {
   const authHeader = req.headers["authorization"];
-  console.log("🔐 Incoming Auth Header:", authHeader);
-
   const token = authHeader && authHeader.split(" ")[1];
+
   if (!token) {
-    console.log("⚠️ No token provided");
     return res.status(401).json({ error: "Token required" });
   }
 
   jwt.verify(token, JWT_SECRET, (err, user) => {
     if (err) {
-      console.log("🚫 Token verification failed:", err.message);
       return res.status(403).json({ error: "Invalid token" });
     }
     req.user = user;
@@ -74,7 +68,6 @@ function authenticateToken(req, res, next) {
   });
 }
 
-// Signup Route
 app.post("/auth/signup", async (req, res) => {
   const { name, email, password } = req.body;
   if (!name || !email || !password)
@@ -100,7 +93,6 @@ app.post("/auth/signup", async (req, res) => {
   }
 });
 
-// Login Route
 app.post("/auth/login", async (req, res) => {
   const { email, password } = req.body;
   if (!email || !password)
@@ -128,10 +120,8 @@ app.post("/auth/login", async (req, res) => {
   }
 });
 
-// Chatbot Route
 app.post("/api/chat", authenticateToken, async (req, res) => {
   const { userInput } = req.body;
-
   if (!userInput) return res.status(400).json({ error: "User input required" });
 
   try {
@@ -152,12 +142,11 @@ app.post("/api/chat", authenticateToken, async (req, res) => {
     const botReply = openaiResponse.data.choices[0].message.content.trim();
     res.json({ reply: botReply });
   } catch (err) {
-    console.error("Error contacting OpenAI API:", err?.response?.data || err.message);
+    console.error("OpenAI API error:", err?.response?.data || err.message);
     res.status(500).json({ error: "Error with AI service" });
   }
 });
 
-// User CRUD Routes
 app.get("/users", authenticateToken, async (req, res) => {
   try {
     const { rows } = await pool.query("SELECT id, name, email FROM users");
@@ -228,7 +217,12 @@ app.delete("/users/:id", authenticateToken, async (req, res) => {
   }
 });
 
-// Start Server
+// ✅ GET /me route
+app.get("/me", authenticateToken, (req, res) => {
+  res.json({ user: req.user });
+});
+
+// ✅ Start server
 app.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
 });
